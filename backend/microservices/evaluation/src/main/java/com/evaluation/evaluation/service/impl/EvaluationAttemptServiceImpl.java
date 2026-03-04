@@ -1,5 +1,7 @@
 package com.evaluation.evaluation.service.impl;
 
+import com.evaluation.evaluation.client.UserServiceClient;
+import com.evaluation.evaluation.dto.UserInfoDto;
 import com.evaluation.evaluation.enums.AttemptStatus;
 import com.evaluation.evaluation.exception.ResourceNotFoundException;
 import com.evaluation.evaluation.model.Evaluation;
@@ -17,6 +19,7 @@ import com.evaluation.evaluation.service.EvaluationAttemptService;
 import com.evaluation.evaluation.service.AiGradingService;
 import com.evaluation.evaluation.dto.CertificateEligibilityResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -28,6 +31,7 @@ import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class EvaluationAttemptServiceImpl implements EvaluationAttemptService {
 
     private final EvaluationAttemptRepository evaluationAttemptRepository;
@@ -38,6 +42,7 @@ public class EvaluationAttemptServiceImpl implements EvaluationAttemptService {
     private final FillBlankQuestionRepository fillBlankQuestionRepository;
     private final AiGradingService aiGradingService;
     private final ReadingQuestionRepository readingQuestionRepository;
+    private final UserServiceClient userServiceClient;
 
     @Override
     public EvaluationAttempt startAttempt(Long evaluationId, Long userId) {
@@ -81,6 +86,21 @@ public class EvaluationAttemptServiceImpl implements EvaluationAttemptService {
         attempt.setAttemptNumber(submittedAttempts + 1);
         attempt.setCreatedAt(LocalDateTime.now());
         attempt.setUpdatedAt(LocalDateTime.now());
+
+        // Fetch logged-in student's name and email from User microservice via OpenFeign
+        try {
+            UserInfoDto userInfo = userServiceClient.getUserById(userId);
+            if (userInfo != null) {
+                attempt.setStudentFirstName(userInfo.getFirstName());
+                attempt.setStudentLastName(userInfo.getLastName());
+                attempt.setStudentEmail(userInfo.getEmail());
+            }
+        } catch (Exception e) {
+            log.warn("Could not fetch user info for userId={} from User service: {}", userId, e.getMessage());
+            attempt.setStudentFirstName("Unknown");
+            attempt.setStudentLastName("");
+            attempt.setStudentEmail("");
+        }
 
         return evaluationAttemptRepository.save(attempt);
     }

@@ -71,6 +71,14 @@ export class EvaluationAttemptsComponent implements OnInit {
     return u ? `${u.name} ${u.surname}` : `User #${userId}`;
   }
 
+  /** Display name for an attempt: prefer saved student name (from User microservice via OpenFeign), else fallback. */
+  attemptDisplayName(a: EvaluationAttempt): string {
+    if (a.studentFirstName != null || a.studentLastName != null) {
+      return [a.studentFirstName, a.studentLastName].filter(Boolean).join(' ').trim() || `User #${a.userId}`;
+    }
+    return this.userName(a.userId);
+  }
+
   viewAttempt(a: EvaluationAttempt): void {
     if (a.studentAnswers && a.studentAnswers.length > 0) {
       this.selectedAttempt = a;

@@ -39,6 +39,16 @@ public class EvaluationAttempt {
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
+    /** Student display name and email from User microservice (filled when attempt starts via OpenFeign). */
+    @Column(name = "student_first_name", length = 100)
+    private String studentFirstName;
+
+    @Column(name = "student_last_name", length = 100)
+    private String studentLastName;
+
+    @Column(name = "student_email", length = 255)
+    private String studentEmail;
+
     @Column(nullable = false)
     private LocalDateTime startTime;
 

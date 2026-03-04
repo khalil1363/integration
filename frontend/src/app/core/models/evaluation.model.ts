@@ -44,6 +44,10 @@ export interface Blank {
 export interface EvaluationAttempt {
   id: number;
   userId: number;
+  /** Student name/email from User microservice (set when attempt starts via OpenFeign). */
+  studentFirstName?: string;
+  studentLastName?: string;
+  studentEmail?: string;
   startTime: string;
   endTime?: string;
   score?: number;

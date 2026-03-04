@@ -3,6 +3,7 @@ import { isPlatformBrowser } from '@angular/common';
 import { Router } from '@angular/router';
 import { EvaluationApiService } from '../../core/services/evaluation-api.service';
 import { CurrentUserService } from '../../core/services/current-user.service';
+import { AuthService } from '../../services/auth.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
 const PLATFORM_NAME = 'SlangEnglish';
@@ -33,6 +34,7 @@ export class CertificateComponent implements OnInit {
   constructor(
     private api: EvaluationApiService,
     private currentUser: CurrentUserService,
+    private authService: AuthService,
     private router: Router,
     private snackBar: MatSnackBar,
     @Inject(PLATFORM_ID) private platformId: object
@@ -60,7 +62,8 @@ export class CertificateComponent implements OnInit {
           month: 'long',
           day: 'numeric'
         });
-        this.loadStudentName(userId);
+        // Use the logged-in user's first and last name on the certificate (they are the one who passed the evaluation)
+        this.setStudentNameFromLoggedInUser();
         this.loading = false;
       },
       error: () => {
@@ -71,15 +74,14 @@ export class CertificateComponent implements OnInit {
     });
   }
 
-  private loadStudentName(userId: number): void {
-    this.api.getUserById(userId).subscribe({
-      next: (user) => {
-        this.studentName = [user.name, user.surname].filter(Boolean).join(' ') || 'Student';
-      },
-      error: () => {
-        this.studentName = 'Student';
-      }
-    });
+  /** Set certificate name from the user who is logged in (and passed the evaluation). */
+  private setStudentNameFromLoggedInUser(): void {
+    const user = this.authService.getCurrentUser();
+    if (user?.firstName != null || user?.lastName != null) {
+      this.studentName = [user.firstName, user.lastName].filter(Boolean).join(' ').trim();
+    } else {
+      this.studentName = 'Certificate Holder';
+    }
   }
 
   get platformName(): string {
