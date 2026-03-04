@@ -57,15 +57,42 @@ export interface FacebookSigninPayload {
 export class AuthService {
 
   private readonly apiUrl = '/api/auth';
+  private readonly storageKey = 'slang_current_user';
 
-  // Simple in-memory current user (pas de localStorage pour éviter les erreurs SSR)
+  // Current user is kept in memory, and (when running in the browser) also
+  // stored in localStorage so a page refresh does not log the user out.
   private currentUserSubject = new BehaviorSubject<AuthUser | null>(null);
   currentUser$ = this.currentUserSubject.asObservable();
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) {
+    // On browser refresh, restore the user from localStorage (if present).
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = window.localStorage.getItem(this.storageKey);
+        if (raw) {
+          const parsed = JSON.parse(raw) as AuthUser;
+          this.currentUserSubject.next(parsed);
+        }
+      } catch {
+        // ignore parse errors and start with null user
+        this.currentUserSubject.next(null);
+      }
+    }
+  }
 
   private setCurrentUser(user: AuthUser | null): void {
     this.currentUserSubject.next(user);
+    if (typeof window !== 'undefined') {
+      try {
+        if (user) {
+          window.localStorage.setItem(this.storageKey, JSON.stringify(user));
+        } else {
+          window.localStorage.removeItem(this.storageKey);
+        }
+      } catch {
+        // ignore storage errors (e.g. private mode)
+      }
+    }
   }
 
   signup(payload: SignupPayload): Observable<AuthUser> {
